@@ -16,7 +16,7 @@ from utils.loss_utils import l1_loss, edge_aware_normal_loss, ms_ssim
 from gaussian_renderer import render, network_gui
 import sys
 from scene import Scene, GaussianModel
-from utils.general_utils import safe_state
+from utils.general_utils import safe_state, Logger
 from tqdm import tqdm
 from utils.image_utils import psnr, render_net_image, depth_to_normal
 from argparse import ArgumentParser, Namespace
@@ -173,7 +173,8 @@ def training_report(tb_writer, iteration, loss, l1_loss, elapsed, testing_iterat
     if iteration in testing_iterations:
         torch.cuda.empty_cache()
         validation_configs = ({'name': 'test', 'cameras' : scene.getTestCameras()}, 
-                              {'name': 'train', 'cameras' : [scene.getTrainCameras()[idx % len(scene.getTrainCameras())] for idx in range(5, 30, 5)]})
+                              {'name': 'train', 'cameras' : scene.getTrainCameras()})
+                            #   {'name': 'train', 'cameras' : [scene.getTrainCameras()[idx % len(scene.getTrainCameras())] for idx in range(5, 30, 5)]}) ### TODO: Why?
 
         for config in validation_configs:
             if config['cameras'] and len(config['cameras']) > 0:
@@ -217,6 +218,10 @@ if __name__ == "__main__":
     parser.add_argument("--start_checkpoint", type=str, default = None)
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)
+
+    ### Logger
+    os.makedirs(args.model_path, exist_ok = True)
+    logger = Logger(os.path.join(args.model_path, 'terminal.txt'))
     
     print("Optimizing " + args.model_path)
 
@@ -224,7 +229,10 @@ if __name__ == "__main__":
     safe_state(args.quiet)
 
     # Start GUI server, configure and run training
-    network_gui.init(args.ip, args.port)
+    try:
+        network_gui.init(args.ip, args.port)
+    except Exception as err:
+        print(f'>>> Could not start GUI: {str(err)}.')
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
     training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from)
 

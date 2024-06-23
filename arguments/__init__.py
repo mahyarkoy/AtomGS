@@ -56,6 +56,7 @@ class ModelParams(ParamGroup):
         self.data_device = "cuda"
         self.eval = False
         self.render_items = ['RGB', 'Alpha', 'Depth', 'Normal', 'Curvature', 'Edge']
+        self.split_path = "None" ### path to json file containing {'train': [filenames], 'test': [filenames]}
         super().__init__(parser, "Loading Parameters", sentinel)
 
     def extract(self, args):

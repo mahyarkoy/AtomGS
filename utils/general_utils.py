@@ -15,6 +15,49 @@ from datetime import datetime
 import numpy as np
 import random
 
+class Logger(object):
+    def __init__(self, log_path, log_option='a+', force_flush=True):
+        '''
+        Logging from stdout and stderr into stdout and log file simultaneously.
+        '''
+        self.log = open(log_path, log_option)
+        self.stdout = sys.stdout
+        self.stderr = sys.stderr
+        self.force_flush = force_flush
+        
+        ### Take control from stdout and stdin
+        sys.stdout = self
+        sys.stderr = self
+    
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    def write(self, message):
+        if len(message) == 0: ## to avoid bug in VSCode
+            return
+        self.log.write(message)
+        self.stdout.write(message)
+        if self.force_flush:
+            self.flush()
+
+    def flush(self):
+        self.log.flush()
+        self.stdout.flush()
+
+    def close(self):
+        self.flush()
+        
+        ### Return control to stdout and stdin
+        if sys.stdout is self:
+            sys.stdout = self.stdout
+        if sys.stderr is self:
+            sys.stderr = self.stderr
+        
+        self.log.close()
+
 def inverse_sigmoid(x):
     return torch.log(x/(1-x))
 

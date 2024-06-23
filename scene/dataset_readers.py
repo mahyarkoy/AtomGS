@@ -22,6 +22,7 @@ from pathlib import Path
 from plyfile import PlyData, PlyElement
 from utils.sh_utils import SH2RGB
 from scene.gaussian_model import BasicPointCloud
+from collections import defaultdict
 
 class CameraInfo(NamedTuple):
     uid: int
@@ -129,7 +130,7 @@ def storePly(path, xyz, rgb):
     ply_data = PlyData([vertex_element])
     ply_data.write(path)
 
-def readColmapSceneInfo(path, images, eval, llffhold=8):
+def readColmapSceneInfo(path, images, eval, llffhold=8, split_path="None"):
     try:
         cameras_extrinsic_file = os.path.join(path, "sparse/0", "images.bin")
         cameras_intrinsic_file = os.path.join(path, "sparse/0", "cameras.bin")
@@ -145,25 +146,52 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
     cam_infos_unsorted = readColmapCameras(cam_extrinsics=cam_extrinsics, cam_intrinsics=cam_intrinsics, images_folder=os.path.join(path, reading_dir))
     cam_infos = sorted(cam_infos_unsorted.copy(), key = lambda x : x.image_name)
 
-    if eval:
-        train_cam_infos = [c for idx, c in enumerate(cam_infos) if idx % llffhold != 0]
-        test_cam_infos = [c for idx, c in enumerate(cam_infos) if idx % llffhold == 0]
+    ### Read train and test splits from file
+    if split_path != "None":
+        with open(split_path, 'r') as fs:
+            split_dict = json.load(fs)
+            train_set = set(split_dict['train'])
+            test_set = set(split_dict['test'])
+        train_cam_infos = [c for idx, c in enumerate(cam_infos) if c.image_name in train_set]
+        test_cam_infos = [c for idx, c in enumerate(cam_infos) if c.image_name in test_set]
     else:
-        train_cam_infos = cam_infos
-        test_cam_infos = []
+        if eval:
+            train_cam_infos = [c for idx, c in enumerate(cam_infos) if idx % llffhold != 0]
+            test_cam_infos = [c for idx, c in enumerate(cam_infos) if idx % llffhold == 0]
+        else:
+            train_cam_infos = cam_infos
+            test_cam_infos = []
+    print(f">>> train_set size: {len(train_cam_infos)}, test_set size: {len(test_cam_infos)}.")
+
+    ### For each 3D point, count the number of training cams that see it
+    train_point3Ds = defaultdict(int)
+    train_set = set([c.image_name for c in train_cam_infos])
+    for cam_idx, cam_ext in cam_extrinsics.items():
+        image_name = os.path.basename(cam_ext.name).split(".")[0]
+        if image_name in train_set:
+            for pid in cam_ext.point3D_ids:
+                train_point3Ds[pid] += 1
+
 
     nerf_normalization = getNerfppNorm(train_cam_infos)
 
     ply_path = os.path.join(path, "sparse/0/points3D.ply")
     bin_path = os.path.join(path, "sparse/0/points3D.bin")
     txt_path = os.path.join(path, "sparse/0/points3D.txt")
-    if not os.path.exists(ply_path):
-        print("Converting point3d.bin to .ply, will happen only the first time you open the scene.")
-        try:
-            xyz, rgb, _ = read_points3D_binary(bin_path)
-        except:
-            xyz, rgb, _ = read_points3D_text(txt_path)
-        storePly(ply_path, xyz, rgb)
+    # if not os.path.exists(ply_path):
+    # print("Converting point3d.bin to .ply, will happen only the first time you open the scene.")
+    print("Converting point3d.bin to .ply.")
+    try:
+        pids, xyz, rgb, _ = read_points3D_binary(bin_path, full_format=True)
+    except OSError:
+        pids, xyz, rgb, _ = read_points3D_text(bin_path, full_format=True)
+
+    pids_in_train = np.array([train_point3Ds[pid] for pid in pids]) > 1
+    xyz = xyz[pids_in_train]
+    rgb = rgb[pids_in_train]
+    print(f">>> Init 3D points: {len(xyz)} of {len(pids)} selected.")
+    storePly(ply_path, xyz, rgb)
+
     try:
         pcd = fetchPly(ply_path)
     except:

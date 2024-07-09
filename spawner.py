@@ -4,13 +4,49 @@ import argparse
 import os
 
 EXP_CONFIGS = {
-    'atomgs':
+    'atomgs_bicycle':
     {
         'cmd': 'python train.py',
         'save_dir_key': 'model_path',
         'model_path': 'atomgs/bicycle_full',
         'source_path': 'data/360_v2/bicycle',
         'split_path': 'None' # 'data/360_v2/bicycle/split_pca3_50top.json' 
+    },
+
+    'atomgs_flowers':
+    {
+        'cmd': 'python train.py',
+        'save_dir_key': 'model_path',
+        'model_path': 'atomgs/flowers_split_pca3_20top',
+        'source_path': 'data/360_v2/flowers',
+        'split_path': 'data/360_v2/flowers/split_pca3_20top.json' 
+    },
+
+    'atomgs_garden':
+    {
+        'cmd': 'python train.py',
+        'save_dir_key': 'model_path',
+        'model_path': 'atomgs/garden_split_pca3_20top',
+        'source_path': 'data/360_v2/garden',
+        'split_path': 'data/360_v2/garden/split_pca3_20top.json' 
+    },
+
+    'atomgs_stump':
+    {
+        'cmd': 'python train.py',
+        'save_dir_key': 'model_path',
+        'model_path': 'atomgs/stump_full',
+        'source_path': 'data/360_v2/stump',
+        'split_path': 'None' # 'data/360_v2/stump/split_pca3_50top.json' 
+    },
+
+    'atomgs_treehill':
+    {
+        'cmd': 'python train.py',
+        'save_dir_key': 'model_path',
+        'model_path': 'atomgs/treehill_split_pca3_20top',
+        'source_path': 'data/360_v2/treehill',
+        'split_path': 'data/360_v2/treehill/split_pca3_20top.json' 
     },
 }
 
@@ -81,6 +117,8 @@ echo "GPU allocated: "$CUDA_VISIBLE_DEVICES
 nvidia-smi
 source /nas/home/mkhayat/.bashrc
 conda activate {condaenv}
+export 'PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512'
+echo $PYTORCH_CUDA_ALLOC_CONF
 '''
 
 COPY_STR = 'cp -r {temp_dir} {save_dir}'
@@ -178,7 +216,7 @@ if __name__ == '__main__':
                 bash_file_path = os.path.join(job_save_dir, f'bash_{job_name}.sh')
                 set_device_str = f'export CUDA_VISIBLE_DEVICES={args.device}\n' if args.device is not None else ''
                 with open(bash_file_path, 'w+') as fs:
-                    print('#!/bin/bash\n'+set_device_str+cmd_str, file=fs)
+                    print('#!/bin/bash\n'+set_device_str+'export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512\n'+cmd_str, file=fs)
                     fs.flush()
                     os.fsync(fs)
 

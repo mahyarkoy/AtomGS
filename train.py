@@ -228,7 +228,7 @@ if __name__ == "__main__":
 
     ### Logger
     os.makedirs(args.model_path, exist_ok = True)
-    logger = Logger(os.path.join(args.model_path, 'terminal.txt'))
+    logger = Logger(os.path.join(args.model_path, 'terminal.txt'), datetime=False)
     
     print("Optimizing " + args.model_path)
 

@@ -37,7 +37,7 @@ EXP_CONFIGS = {
         'save_dir_key': 'model_path',
         'model_path': 'atomgs/stump_full',
         'source_path': 'data/360_v2/stump',
-        'split_path': 'None' # 'data/360_v2/stump/split_pca3_50top.json' 
+        'split_path': 'None' # 'data/360_v2/stump/split_pca3_20top.json' 
     },
 
     'atomgs_treehill':

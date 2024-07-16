@@ -16,7 +16,7 @@ import numpy as np
 import random
 
 class Logger(object):
-    def __init__(self, log_path, log_option='a+', force_flush=True, silent=False, datetime=True):
+    def __init__(self, log_path, log_option='a+', force_flush=True, silent=False, add_datetime=True):
         '''
         Logging from stdout and stderr into stdout and log file simultaneously.
         '''
@@ -25,7 +25,7 @@ class Logger(object):
         self.stderr = sys.stderr
         self.force_flush = force_flush
         self.silent = silent
-        self.datetime = datetime
+        self.add_datetime = add_datetime
         
         ### Take control from stdout and stdin
         sys.stdout = self
@@ -41,8 +41,8 @@ class Logger(object):
         if len(message) == 0: ## to avoid bug in VSCode
             return
         if not self.silent:
-            if self.datetime and message.endswith('\n'):
-                message = f'[{str(datetime.now().strftime("%d/%m %H:%M:%S"))}] ' + message
+            if self.add_datetime and message.endswith('\n'):
+                message = message.replace('\n', f' [{str(datetime.now().strftime("%d/%m %H:%M:%S"))}]\n')
             
             self.log.write(message)
             self.stdout.write(message)

@@ -17,7 +17,7 @@ EXP_CONFIGS = {
     {
         'cmd': 'python train.py',
         'save_dir_key': 'model_path',
-        'model_path': 'atomgs/flowers_split_pca3_20top',
+        'model_path': 'atomgs/flowers_pca3_20top',
         'source_path': 'data/360_v2/flowers',
         'split_path': 'data/360_v2/flowers/split_pca3_20top.json' 
     },
@@ -26,7 +26,7 @@ EXP_CONFIGS = {
     {
         'cmd': 'python train.py',
         'save_dir_key': 'model_path',
-        'model_path': 'atomgs/garden_split_pca3_20top',
+        'model_path': 'atomgs/garden_pca3_20top',
         'source_path': 'data/360_v2/garden',
         'split_path': 'data/360_v2/garden/split_pca3_20top.json' 
     },
@@ -35,9 +35,9 @@ EXP_CONFIGS = {
     {
         'cmd': 'python train.py',
         'save_dir_key': 'model_path',
-        'model_path': 'atomgs/stump_full',
+        'model_path': 'atomgs/stump_pca3_20top',
         'source_path': 'data/360_v2/stump',
-        'split_path': 'None' # 'data/360_v2/stump/split_pca3_20top.json' 
+        'split_path': 'data/360_v2/stump/split_pca3_20top.json' 
     },
 
     'atomgs_treehill':

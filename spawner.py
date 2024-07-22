@@ -8,45 +8,50 @@ EXP_CONFIGS = {
     {
         'cmd': 'python train.py',
         'save_dir_key': 'model_path',
-        'model_path': 'atomgs/bicycle_full',
+        'model_path': 'atomgs/bicycle_pca3_20top_seed{seed}',
         'source_path': 'data/360_v2/bicycle',
-        'split_path': 'None' # 'data/360_v2/bicycle/split_pca3_50top.json' 
+        'split_path': 'data/360_v2/bicycle/split_pca3_20top.json', 
+        'seed': 1100
     },
 
     'atomgs_flowers':
     {
         'cmd': 'python train.py',
         'save_dir_key': 'model_path',
-        'model_path': 'atomgs/flowers_pca3_20top',
+        'model_path': 'atomgs/flowers_pca3_20top_seed{seed}',
         'source_path': 'data/360_v2/flowers',
-        'split_path': 'data/360_v2/flowers/split_pca3_20top.json' 
+        'split_path': 'data/360_v2/flowers/split_pca3_20top.json',
+        'seed': 1100
     },
 
     'atomgs_garden':
     {
         'cmd': 'python train.py',
         'save_dir_key': 'model_path',
-        'model_path': 'atomgs/garden_pca3_20top',
+        'model_path': 'atomgs/garden_pca3_20top_seed{seed}',
         'source_path': 'data/360_v2/garden',
-        'split_path': 'data/360_v2/garden/split_pca3_20top.json' 
+        'split_path': 'data/360_v2/garden/split_pca3_20top.json',
+        'seed': 1100 
     },
 
     'atomgs_stump':
     {
         'cmd': 'python train.py',
         'save_dir_key': 'model_path',
-        'model_path': 'atomgs/stump_pca3_20top',
+        'model_path': 'atomgs/stump_pca3_20top_seed{seed}',
         'source_path': 'data/360_v2/stump',
-        'split_path': 'data/360_v2/stump/split_pca3_20top.json' 
+        'split_path': 'data/360_v2/stump/split_pca3_20top.json',
+        'seed': 1100
     },
 
     'atomgs_treehill':
     {
         'cmd': 'python train.py',
         'save_dir_key': 'model_path',
-        'model_path': 'atomgs/treehill_split_pca3_20top',
+        'model_path': 'atomgs/treehill_pca3_20top_seed{seed}',
         'source_path': 'data/360_v2/treehill',
-        'split_path': 'data/360_v2/treehill/split_pca3_20top.json' 
+        'split_path': 'data/360_v2/treehill/split_pca3_20top.json',
+        'seed': 1100 
     },
 }
 

@@ -11,7 +11,7 @@ EXP_CONFIGS = {
         'model_path': 'atomgs/bicycle_pca3_20top_seed{seed}',
         'source_path': 'data/360_v2/bicycle',
         'split_path': 'data/360_v2/bicycle/split_pca3_20top.json', 
-        'seed': 1100
+        'seed': 1200
     },
 
     'atomgs_flowers':
@@ -21,7 +21,7 @@ EXP_CONFIGS = {
         'model_path': 'atomgs/flowers_pca3_20top_seed{seed}',
         'source_path': 'data/360_v2/flowers',
         'split_path': 'data/360_v2/flowers/split_pca3_20top.json',
-        'seed': 1100
+        'seed': 1200
     },
 
     'atomgs_garden':
@@ -31,7 +31,7 @@ EXP_CONFIGS = {
         'model_path': 'atomgs/garden_pca3_20top_seed{seed}',
         'source_path': 'data/360_v2/garden',
         'split_path': 'data/360_v2/garden/split_pca3_20top.json',
-        'seed': 1100 
+        'seed': 1200 
     },
 
     'atomgs_stump':
@@ -41,7 +41,7 @@ EXP_CONFIGS = {
         'model_path': 'atomgs/stump_pca3_20top_seed{seed}',
         'source_path': 'data/360_v2/stump',
         'split_path': 'data/360_v2/stump/split_pca3_20top.json',
-        'seed': 1100
+        'seed': [1400, 1500]
     },
 
     'atomgs_treehill':
@@ -51,7 +51,7 @@ EXP_CONFIGS = {
         'model_path': 'atomgs/treehill_pca3_20top_seed{seed}',
         'source_path': 'data/360_v2/treehill',
         'split_path': 'data/360_v2/treehill/split_pca3_20top.json',
-        'seed': 1100 
+        'seed': 1200 
     },
 }
 
@@ -77,6 +77,8 @@ echo "GPU allocated: "$CUDA_VISIBLE_DEVICES
 nvidia-smi
 source /nas/home/mkhayat/.bashrc
 conda activate {condaenv}
+export 'PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512'
+echo $PYTORCH_CUDA_ALLOC_CONF
 '''
 
 SBATCH_STR_LARGE = '''#!/bin/bash 
@@ -111,6 +113,7 @@ SBATCH_STR_ECLAIR = '''#!/bin/bash
 #SBATCH --cpus-per-task=4
 #SBATCH --gpus={device}
 #SBATCH --mem=32G
+#SBATCH --time=24:00:00
 #SBATCH --output={save_dir}/sbatch_{job_name}.out
 #SBATCH --error={save_dir}/sbatch_{job_name}.out
 #SBATCH --open-mode=truncate
@@ -121,6 +124,31 @@ echo "CPU allocated: "$(taskset -c -p $$)
 echo "GPU allocated: "$CUDA_VISIBLE_DEVICES
 nvidia-smi
 source /nas/home/mkhayat/.bashrc
+conda activate {condaenv}
+export 'PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512'
+echo $PYTORCH_CUDA_ALLOC_CONF
+'''
+
+SBATCH_STR_DISCOVERY = '''#!/bin/bash 
+#SBATCH --job-name={job_name} 
+#SBATCH --ntasks=1 
+#SBATCH --account={account}
+#SBATCH --partition={partition}
+#SBATCH --cpus-per-task=4
+#SBATCH --gpus-per-task={device}
+#SBATCH --mem=32G
+#SBATCH --time=48:00:00
+#SBATCH --output={save_dir}/sbatch_{job_name}.out
+#SBATCH --error={save_dir}/sbatch_{job_name}.out
+#SBATCH --open-mode=truncate
+{constraint}
+
+echo "HOSTNAME: "$(hostname)
+echo "tmpdir for the job: "$TMPDIR 
+echo "CPU allocated: "$(taskset -c -p $$)
+echo "GPU allocated: "$CUDA_VISIBLE_DEVICES
+nvidia-smi
+source /home1/khayatkh/.bashrc
 conda activate {condaenv}
 export 'PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512'
 echo $PYTORCH_CUDA_ALLOC_CONF
@@ -167,16 +195,17 @@ def setup_args():
     parser.add_argument('--single_thread', action='store_true', help='Serialize seeds on the same run.')
     parser.add_argument('--save_local', action='store_true', help='Saves on the local machine and copies back.')
     parser.add_argument('--bash', action='store_true', help='Runs with bash instead of sbatch.')
-    parser.add_argument('--num_gpus', type=int, default=1, help='Number of GPUs to use.')
-    parser.add_argument('--device', help='The gpu ids to use, e.g. 0,1,2. will be ignored when bash is not used.')
-    parser.add_argument('--cluster', default='eclair', help='SBATCH option: use internal or eclair.')
+    parser.add_argument('--device', help='The gpu ids to use, e.g. 0,1,2., or gpu specification for slurm.')
+    parser.add_argument('--constraint', help='The gpu mem constraint for discovery: a100-40gb or a100-80gb.')
+    parser.add_argument('--cluster', default='eclair', help='SBATCH option: use turing or eclair or discovery.')
     parser.add_argument('--partition', default='medium-lg', help='choice of partition for eclair: long-lg.')
+    parser.add_argument('--account', default='gpu', help='choice of partition for discovery: main or gpu.')
     parser.add_argument('--env', help='Conda environment.')
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = setup_args()
-    sbatch_str = SBATCH_STR_ECLAIR if args.cluster=='eclair' else SBATCH_STR
+    sbatch_str = {'eclair': SBATCH_STR_ECLAIR, 'turing': SBATCH_STR, 'discovery': SBATCH_STR_DISCOVERY}[args.cluster]
     for config_name in args.config:
         print(f'\n>>> Spawning {config_name}')
         config_base = EXP_CONFIGS[config_name]
@@ -196,7 +225,7 @@ if __name__ == '__main__':
             save_dir_key = config['save_dir_key']
             del config['save_dir_key']
             config_save_dir = config[save_dir_key]
-            temp_save_dir = (os.path.join('$TMPDIR/logs_temp', config_save_dir)
+            temp_save_dir = (os.path.join('$TMPDIR', 'logs_temp', config_save_dir)
                     if args.save_local else os.path.join(args.save_dir, config_save_dir))
             config[save_dir_key] = temp_save_dir
 
@@ -229,7 +258,14 @@ if __name__ == '__main__':
                     os_cmd(f'bash {bash_file_path}', stdout=sys.stdout)
             else:
                 ### Save sbatch to file
-                sbatch_cmd = sbatch_str.format(device=args.num_gpus, job_name=job_name, save_dir=job_save_dir, condaenv=args.env, partition=args.partition)
+                sbatch_cmd = sbatch_str.format(
+                    device=args.device, 
+                    job_name=job_name, 
+                    save_dir=job_save_dir, 
+                    condaenv=args.env, 
+                    partition=args.partition, 
+                    account=args.account, 
+                    constraint=f'#SBATCH --constraint={args.constraint}' if args.constraint is not None else '')
                 sbatch_file = sbatch_cmd+'\n'+cmd_str
                 sbatch_file_path = os.path.join(job_save_dir, f'sbatch_{job_name}.sh')
                 with open(sbatch_file_path, 'w+') as fs:
